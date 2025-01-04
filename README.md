@@ -20,6 +20,6 @@ First export the entire library in Music.app, to this directory under `tmp/Libra
 ![iTunes-export.png](iTunes-export.png)
 
 ```sh
-# cd to this directory
+# cd to this directory and start sync
 sh sync.sh "YourPlaylistName"
 ```
