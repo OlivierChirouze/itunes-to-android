@@ -10,7 +10,7 @@ csvFile="$(dirname "$0")/tmp/$playlistName.csv"
 phoneRoot=${2:-"/storage/sdcard0/syncr"}
 
 # Create the albums csv file
-ts-node export.ts "$playlistName" | sort -u > "$csvFile"
+ts-node playlist-to-csv.ts "$playlistName" | sort -u > "$csvFile"
 
 lineCount=$(wc -l < "$csvFile")
 echo "file exported in $csvFile with $lineCount albums found"
