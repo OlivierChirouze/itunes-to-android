@@ -14,6 +14,8 @@ pip install BetterADBSync
 ```
 - npm install here
 ```shell
+nvm use
+npm install --global ts-node
 npm install
 ```
 
