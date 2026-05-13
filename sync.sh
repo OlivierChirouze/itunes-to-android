@@ -78,5 +78,5 @@ while IFS=$'\t' read -r -a values; do
   echo $subDir
 
   # exclude hidden MacOS files like ._05 Diaraby.mp3 next to 05 Diaraby.mp3
-  adbsync -q --show-progress --exclude "._*" push "$trackDir/" "$phoneRoot/$subDir/"
+  adbsync -q --show-progress --del --exclude "._*" push "$trackDir/" "$phoneRoot/$subDir/"
 done < "$csvFile"

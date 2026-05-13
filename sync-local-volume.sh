@@ -83,5 +83,5 @@ while IFS=$'\t' read -r -a values; do
   mkdir -p "$volumePath/$subDir"
 
   # exclude hidden MacOS files like ._05 Diaraby.mp3 next to 05 Diaraby.mp3
-  rsync -a --info=progress2 --exclude "._*" "$trackDir/" "$volumePath/$subDir/"
+  rsync --progress --archive --exclude "._*" "$trackDir/" "$volumePath/$subDir/"
 done < "$csvFile"
