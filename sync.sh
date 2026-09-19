@@ -1,6 +1,7 @@
 #!/bin/bash
+set -euo pipefail
 
-if [ -z "$1" ]; then
+if [ -z "${1:-}" ]; then
   echo "Usage: $0 <playlistName> [phoneRoot]"
   exit 1
 fi
@@ -10,11 +11,29 @@ csvFile="$(dirname "$0")/tmp/$playlistName.csv"
 tsFile="$(dirname "$0")/playlist-to-csv.ts"
 phoneRoot=${2:-"/storage/sdcard0/syncr"}
 
-# Create the albums csv file
-ts-node "$tsFile" "$playlistName" | sort -u > "$csvFile"
+# Quote a string for remote shell usage: wrap in single quotes and escape any single quotes inside
+sh_quote() {
+  # replace each ' with '\'' and wrap whole result in single quotes
+  printf "%s" "'$'" >/dev/null 2>&1 || true
+  printf "'%s'" "$(printf "%s" "$1" | sed "s/'/'\\''/g")"
+}
+
+
+# Create the albums csv file. Write to a tmp file first so a failure in
+# ts-node does not leave behind an empty/partial csv that would later be
+# interpreted as "every phone directory must be deleted".
+csvTmp="$csvFile.partial"
+trap 'rm -f "$csvTmp"' EXIT
+ts-node "$tsFile" "$playlistName" | sort -u > "$csvTmp"
+mv "$csvTmp" "$csvFile"
 
 lineCount=$(wc -l < "$csvFile")
 echo "file exported in $csvFile with $lineCount albums found"
+
+if [ "$lineCount" -eq 0 ]; then
+  echo "Aborting: no albums were exported for playlist '$playlistName'." >&2
+  exit 1
+fi
 
 # Create an array of directories from the csvFile
 csvDirs=()
@@ -28,7 +47,8 @@ rm "$tempFile"
 # Create an array of directories in phoneRoot
 phoneDirs=()
 tempFile=$(mktemp)
-adb shell find "$phoneRoot" -mindepth 2 -maxdepth 2 -type d > "$tempFile"
+cmd=$(printf "find %s -mindepth 2 -maxdepth 2 -type d" "$(sh_quote "$phoneRoot")")
+adb shell "$cmd" > "$tempFile"
 while IFS= read -r dir; do
   phoneDirs+=("$dir")
 done < "$tempFile"
@@ -65,7 +85,8 @@ if [ ${#dirsToDelete[@]} -gt 0 ]; then
   # Delete the directories
   for dir in "${dirsToDelete[@]}"; do
     echo "Deleting $dir"
-    adb shell rm -rf $(printf %q "$dir")
+    cmd=$(printf "rm -rf %s" "$(sh_quote "$dir")")
+    adb shell "$cmd"
   done
 else
   echo "No directories to delete."
@@ -75,7 +96,7 @@ while IFS=$'\t' read -r -a values; do
   trackDir=${values[0]}
   subDir=${values[1]}
   
-  echo $subDir
+  echo "$subDir"
 
   # exclude hidden MacOS files like ._05 Diaraby.mp3 next to 05 Diaraby.mp3
   adbsync -q --show-progress --del --exclude "._*" push "$trackDir/" "$phoneRoot/$subDir/"
